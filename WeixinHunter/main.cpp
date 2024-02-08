@@ -1,4 +1,4 @@
-﻿#include "utils.h"
+#include "utils.h"
 //#include <iostream>
 #include "aobscan.h"
 
@@ -20,8 +20,11 @@ void PrintfCFormat(char* name, BYTE* buff, DWORD length) {
 BOOL ParseWeixin(DWORD PID, BYTE* sig) {
 	DWORD pBase = 0;
 	DWORD dwSize = 0;
-	char* szProcName = "wechatwin.dll";
+	const char* szProcNameConst = "wechatwin.dll";
+	char* szProcName = new char[strlen(szProcNameConst) + 1];
+	strcpy_s(szProcName, strlen(szProcNameConst) + 1, szProcNameConst);
 	FindModule(PID, szProcName, &pBase, &dwSize);
+	delete[] szProcName;
 
 	DWORD pAddr = SUNDAY(PID, (unsigned char*)pBase, (unsigned char*)sig, /*sizeof(sig)*/ sizeof(DWORD), dwSize);
 	if (pAddr == 0){
@@ -114,15 +117,17 @@ BOOL ParseWeixin(DWORD PID, BYTE* sig) {
 	ReadProcessMem(PID, (PVOID)sqliteKeyAddress, sqliteKey, sqliteKeyLength);
 	//printf("sqliteKey:%s\n", sqliteKey);
 	printf("解密ChatMsg.db的C语言格式密码:\n");
-	PrintfCFormat("pass", sqliteKey, sqliteKeyLength);
+	char format[] = "pass";
+	PrintfCFormat(format, sqliteKey, sqliteKeyLength);
+
 	delete[] sqliteKey;
 
 	return TRUE;
 }
 
 int main() {
-	DWORD PID = GetProcessID("WeChat.exe");
-	char* sig = "2D2D2D2D2D424547494E205055424C4943204B45592D2D2D2D2D0A";
+	DWORD PID = GetProcessID(L"WeChat.exe");
+	const char* sig = "2D2D2D2D2D424547494E205055424C4943204B45592D2D2D2D2D0A";
 
 	printf("github:https://github.com/baiyies/CppWeixinHunter \n");
 	printf("仅限用于教育目的，使用本工具的过程中存在任何非法行为，需自行承担相应后果，作者不承担任何法律及连带责任。\n\n");
