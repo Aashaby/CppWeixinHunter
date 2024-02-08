@@ -1,22 +1,22 @@
 #include "utils.h"
 
 
-void ShowError(char* msg) {
+void ShowError(const char* msg) {
 	printf("msg:%s\n",msg);
 }
 
 BOOL ReadProcessMem(DWORD dwProcessId, PVOID pAddress, PVOID pReadBuf, DWORD dwReadBufferSize)
 {
 	BOOL bRet = FALSE;
-	DWORD dwRet = 0;
-	// ¸ù¾ÝPID, ´ò¿ª½ø³Ì»ñÈ¡½ø³Ì¾ä±ú
+	SIZE_T dwRet = 0;
+	// æ ¹æ®PID, æ‰“å¼€è¿›ç¨‹èŽ·å–è¿›ç¨‹å¥æŸ„
 	HANDLE hProcess = ::OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwProcessId);
 	if (NULL == hProcess)
 	{
 		ShowError("error when OpenProcess");
 		return FALSE;
 	}
-	// ¸ü¸ÄÒ³Ãæ±£»¤ÊôÐÔ
+	// æ›´æ”¹é¡µé¢ä¿æŠ¤å±žæ€§
 	//DWORD dwOldProtect = 0;
 	//bRet = ::VirtualProtectEx(hProcess, pAddress, dwReadBufferSize, PAGE_READWRITE, &dwOldProtect);
 	//if (FALSE == bRet)
@@ -24,21 +24,21 @@ BOOL ReadProcessMem(DWORD dwProcessId, PVOID pAddress, PVOID pReadBuf, DWORD dwR
 	//	ShowError("error when VirtualProtectEx");
 	//	return FALSE;
 	//}
-	// ¶ÁÈ¡ÄÚ´æÊý¾Ý
+	// è¯»å–å†…å­˜æ•°æ®
 	bRet = ::ReadProcessMemory(hProcess, pAddress, pReadBuf, dwReadBufferSize, &dwRet);
 	if (FALSE == bRet)
 	{
 		ShowError("error when ReadProcessMemory");
 		return FALSE;
 	}
-	// »¹Ô­Ò³Ãæ±£»¤ÊôÐÔ
+	// è¿˜åŽŸé¡µé¢ä¿æŠ¤å±žæ€§
 	//bRet = ::VirtualProtectEx(hProcess, pAddress, dwReadBufferSize, dwOldProtect, &dwOldProtect);
 	//if (FALSE == bRet)
 	//{
 	//	ShowError("error when VirtualProtectEx");
 	//	return FALSE;
 	//}
-	// ¹Ø±Õ½ø³Ì¾ä±ú
+	// å…³é—­è¿›ç¨‹å¥æŸ„
 	::CloseHandle(hProcess);
 
 	return TRUE;
@@ -92,7 +92,11 @@ BOOL FindModule(DWORD pid, char* sz_Module, DWORD* pBase, DWORD* dwSize)
 		ret = Module32First(hSnapshot, &Module);
 		while (ret)
 		{
-			if (stricmp(Module.szModule, sz_Module) == 0)
+			size_t convertedChars = 0;
+			wchar_t w_Module[256];
+			mbstowcs_s(&convertedChars, w_Module, strlen(sz_Module) + 1, sz_Module, _TRUNCATE);
+
+			if (_wcsicmp(Module.szModule, w_Module) == 0)
 			{
 				*(DWORD*)pBase = (DWORD)Module.modBaseAddr;
 				*(DWORD*)dwSize = Module.modBaseSize;
@@ -107,6 +111,7 @@ BOOL FindModule(DWORD pid, char* sz_Module, DWORD* pBase, DWORD* dwSize)
 	else
 		return FALSE;
 }
+
 
 BOOL GetModuleInfo(DWORD dwPID, DWORD* pBase, DWORD* dwSize)
 {
@@ -148,14 +153,14 @@ DWORD GetProcessID(LPCTSTR lpProcessName)
 
 	if (Process32First(handle, info))
 	{
-		if (_strcmpi(info->szExeFile, lpProcessName) == 0)
+		if (_wcsicmp(info->szExeFile, lpProcessName) == 0)
 		{
 			RetProcessID = info->th32ProcessID;
 			return RetProcessID;
 		}
 		while (Process32Next(handle, info) != FALSE)
 		{
-			if (lstrcmpi(info->szExeFile, lpProcessName) == 0)
+			if (_wcsicmp(info->szExeFile, lpProcessName) == 0)
 			{
 				RetProcessID = info->th32ProcessID;
 				return RetProcessID;
